@@ -1,0 +1,40 @@
+name: uia-probe
+on: [push, workflow_dispatch]
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Environment
+        shell: pwsh
+        run: |
+          [System.Environment]::OSVersion.VersionString
+          query user 2>&1
+          "probe session: " + (Get-Process -Id $PID).SessionId
+          (Get-Item 'C:\Program Files\Google\Chrome\Application\chrome.exe').VersionInfo.ProductVersion
+          Get-ChildItem 'C:\Program Files (x86)\Microsoft\EdgeWebView\Application' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          Get-Process | Where-Object { $_.Name -match 'narrator|nvda|jaws|magnify' } | Select-Object Name
+      - name: Ensure WebView2 runtime
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'C:\Program Files (x86)\Microsoft\EdgeWebView\Application')) {
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile wv2setup.exe
+            Start-Process .\wv2setup.exe -ArgumentList '/silent','/install' -Wait
+          }
+      - name: Build
+        shell: pwsh
+        run: |
+          dotnet build probe -c Release -o out/probe
+          dotnet build wv2app -c Release -o out/wv2
+          cd electron-app; npm install --no-audit --no-fund; npx electron --version
+      - name: Run probes
+        shell: pwsh
+        run: ./run.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: results, path: results }

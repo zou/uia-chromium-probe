@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>UIA-PROBE|0|0</title></head>
+<body>
+<h1>UIA probe</h1>
+<textarea id="ta" autofocus aria-label="Message plain" rows="3" cols="60"></textarea>
+<div id="rich" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Message rich"
+     style="border:1px solid #888;min-height:60px;width:480px;margin-top:8px"></div>
+<script>
+// The window title is the ground truth the probe reads through Win32 (not UIA):
+// UIA-PROBE|<textarea length>|<rich editor length>[|auto]
+const ta = document.getElementById('ta'), rich = document.getElementById('rich');
+let auto = '';
+function upd() { document.title = 'UIA-PROBE|' + ta.value.length + '|' + rich.innerText.trim().length + auto; }
+ta.addEventListener('input', upd); rich.addEventListener('input', upd);
+window.addEventListener('load', () => ta.focus());
+// Fallback if synthetic keystrokes never arrive (no interactive desktop): fill by script, flagged |auto.
+setTimeout(() => {
+  if (!ta.value && !rich.innerText.trim()) {
+    auto = '|auto'; ta.value = 'HELLOTEXTAREA123'; rich.innerText = 'HELLORICH456'; upd();
+  }
+}, 12000);
+</script>
+</body></html>
