@@ -16,10 +16,13 @@ static class Program
 {
     const string M1 = "HELLOTEXTAREA123";
     const string M2 = "HELLORICH456";
+    const string S1 = "TEXTAREA123";
+    const string S2 = "RICH456";
 
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr extra);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
 
     static readonly Stopwatch Clock = Stopwatch.StartNew();
@@ -125,12 +128,20 @@ static class Program
             L($"window found: {Title(h)}");
             Thread.Sleep(4000);
 
-            // Alt tap lets a background process take the foreground.
-            keybd_event(0x12, 0, 0, UIntPtr.Zero);
-            keybd_event(0x12, 0, 2, UIntPtr.Zero);
             SetForegroundWindow(h);
             Thread.Sleep(700);
+            if (GetForegroundWindow() != h)
+            {
+                // Click a blank spot of the page (below the editors) to take the foreground.
+                var b = win.Current.BoundingRectangle;
+                SetCursorPos((int)(b.Left + b.Width / 2), (int)(b.Bottom - 60));
+                mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+                mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(700);
+            }
             r["foregroundIsTarget"] = GetForegroundWindow() == h;
+            // The page autofocuses the textarea; give the renderer a moment before typing.
+            Thread.Sleep(1500);
 
             SendKeys.SendWait(M1); Thread.Sleep(400);
             SendKeys.SendWait("{TAB}"); Thread.Sleep(400);
@@ -161,8 +172,8 @@ static class Program
                     var el = q.Dequeue();
                     nodes++;
                     string text = Texts(el);
-                    if (text.Contains(M1)) { f1 = true; where.Add("textarea@" + Short(el)); }
-                    if (text.Contains(M2)) { f2 = true; where.Add("rich@" + Short(el)); }
+                    if (text.Contains(S1)) { f1 = true; where.Add("textarea@" + Short(el)); }
+                    if (text.Contains(S2)) { f2 = true; where.Add("rich@" + Short(el)); }
                     try
                     {
                         var c = walker.GetFirstChild(el);
