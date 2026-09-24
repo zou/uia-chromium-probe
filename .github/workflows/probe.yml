@@ -19,6 +19,7 @@ jobs:
           (Get-Item 'C:\Program Files\Google\Chrome\Application\chrome.exe').VersionInfo.ProductVersion
           Get-ChildItem 'C:\Program Files (x86)\Microsoft\EdgeWebView\Application' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
           Get-Process | Where-Object { $_.Name -match 'narrator|nvda|jaws|magnify' } | Select-Object Name
+          $global:LASTEXITCODE = 0
       - name: Ensure WebView2 runtime
         shell: pwsh
         run: |
